@@ -83,13 +83,23 @@ class ClientInfo:
         QoSLevel.QOS2: data.get("send_msg.qos2", 0),
       },
     )
+
+    try:
+      created_at = datetime.fromisoformat(data.get("created_at", "1969-01-01T00:00:00+00:00"))
+    except ValueError:
+      created_at = datetime.fromisoformat("1969-01-01T00:00:00+00:00")
+    try:
+      connected_at = datetime.fromisoformat(data.get("connected_at", "1969-01-01T00:00:00+00:00"))
+    except ValueError:
+      connected_at = datetime.fromisoformat("1969-01-01T00:00:00+00:00")
+
     ci = cls(
       client_id=data.get("clientid", "undefined"),
       username=data.get("username", "undefined"),
       clean_start=data.get("clean_start", False),
       keepalive=data.get("keepalive", 0),
-      created_at=datetime.fromisoformat(data.get("created_at", "1969-01-01T00:00:00+00:00")),
-      connected_at=datetime.fromisoformat(data.get("connected_at", "1969-01-01T00:00:00+00:00")),
+      created_at=created_at,
+      connected_at=connected_at,
       is_connected=data.get("connected", False),
       is_expired=data.get("is_expired", False),
       subscription_count=data.get("subscriptions_cnt", 0),
