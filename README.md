@@ -31,6 +31,14 @@ Following fields are ignored for this purpose:
 
 ## Usage
 
+### Installation
+
+[![PyPI:emqx-client-monitor](https://img.shields.io/pypi/v/emqx-client-monitor?style=flat-square&label=PyPI%3A%20emqx-client-monitor)](https://pypi.org/project/emqx-client-monitor/)
+
+```bash
+pipx install emqx-client-monitor
+```
+
 ### Prerequisites
 
 - API key and secret from any admin EMQX user
