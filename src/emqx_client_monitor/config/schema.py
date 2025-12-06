@@ -35,7 +35,9 @@ class MonitoredClientConfig(BaseModel):
 
 
 class PrometheusConfig(BaseModel):
-  job_name: str = Field(default="emqx_client_monitor")
+  port: int = 9671
+  address: str = "0.0.0.0"
+  ttl_seconds: int = 15
 
   enable_processed_counters: bool = True
   """expose processed message counters"""
@@ -58,8 +60,8 @@ class PrometheusConfig(BaseModel):
   """expose inflight message counters"""
   enable_subscription_count: bool = True
   """expose subscription count gauge"""
-  enable_connection_states: bool = True
-  """expose is_connected, is_expired and clean_start flags as 0/1 gauges"""
+  # enable_connection_states: bool = True
+  # """expose is_expired and clean_start flags as 0/1 gauges"""
 
 
 class AgentConfig(BaseModel):

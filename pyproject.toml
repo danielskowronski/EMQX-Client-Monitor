@@ -27,7 +27,7 @@ dependencies = [
   "pyyaml~=6.0.3",
   "pydantic~=2.12.5",
   "requests~=2.32.5",
-  "prometheus-client~=0.23.1",
+  "prometheus_client~=0.22.1",
   "rich~=14.2.0",
   "human-readable~=2.0.0",
 ]

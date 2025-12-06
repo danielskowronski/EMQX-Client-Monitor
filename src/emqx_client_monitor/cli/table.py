@@ -29,9 +29,12 @@ def fmt_ago(dt: datetime, now: datetime, flag: bool = True) -> Text:
     return Text(human_readable.time_delta(delta))
 
 
-def render_clients_table(clients: dict[str, ClientInfo]) -> Table:
+def render_clients_table(clients: dict[str, ClientInfo], all: bool) -> Table:
   table = Table(show_header=True, header_style="bold magenta")
-  table.add_column("Alias", style=Style(bold=True))
+  if all:
+    table.add_column("Client ID", style=Style(bold=True))
+  else:
+    table.add_column("Alias", style=Style(bold=True))
   # table.add_column("Client ID")
   table.add_column("Created\n(time ago)", justify="right")
   table.add_column("Keep\nalive", justify="right")

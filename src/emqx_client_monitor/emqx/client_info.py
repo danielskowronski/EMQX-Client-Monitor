@@ -15,9 +15,9 @@ class DropReason(StrEnum):
 
 
 class QoSLevel(StrEnum):
-  QOS0 = "qos0"
-  QOS1 = "qos1"
-  QOS2 = "qos2"
+  QOS0 = "0"
+  QOS1 = "1"
+  QOS2 = "2"
 
 
 @dataclass
@@ -58,7 +58,7 @@ class ClientInfo:
       raw_octets=data.get("recv_oct", 0),
       msg_dropped=data.get("recv_msg.dropped", 0),
       msg_dropped_by_reason={
-        DropReason.AWAIT_PUBREL_TIMEOUT: data.get("recv_msg.dropped.await_pubrel_timeout", -1),
+        DropReason.AWAIT_PUBREL_TIMEOUT: data.get("recv_msg.dropped.await_pubrel_timeout", 0),
       },
       msg_processed=data.get("recv_msg", 0),
       msg_processed_by_qos={
@@ -88,8 +88,8 @@ class ClientInfo:
       username=data.get("username", "undefined"),
       clean_start=data.get("clean_start", False),
       keepalive=data.get("keepalive", 0),
-      created_at=datetime.fromisoformat(data.get("created_at", "1970-01-01T00:00:00+00:00")),
-      connected_at=datetime.fromisoformat(data.get("connected_at", "1970-01-01T00:00:00+00:00")),
+      created_at=datetime.fromisoformat(data.get("created_at", "1969-01-01T00:00:00+00:00")),
+      connected_at=datetime.fromisoformat(data.get("connected_at", "1969-01-01T00:00:00+00:00")),
       is_connected=data.get("connected", False),
       is_expired=data.get("is_expired", False),
       subscription_count=data.get("subscriptions_cnt", 0),

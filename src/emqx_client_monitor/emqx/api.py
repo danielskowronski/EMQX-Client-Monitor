@@ -7,10 +7,6 @@ from emqx_client_monitor.emqx.client_info import ClientInfo
 import requests
 
 
-def parse_clients_list2(data: list[dict]) -> list[ClientInfo]:
-  return [ClientInfo.from_dict(item) for item in data]
-
-
 def parse_clients_list(data: list[dict], monitored_clients: list[MonitoredClientConfig]) -> dict[str, ClientInfo]:
   monitored_client_aliases = {mc.client_id: mc.alias for mc in monitored_clients}
   skip_filtering = len(monitored_client_aliases) == 0
@@ -28,7 +24,7 @@ def get_current_clients(
   emqx_config: EmqxConfig, monitored_clients: list[MonitoredClientConfig]
 ) -> dict[str, ClientInfo]:
   # FIXME: pagination handling
-  url = f"{emqx_config.api_url}/v5/clients?page=1&limit=10000&fields=all&conn_state=connected"
+  url = f"{emqx_config.api_url}/v5/clients?page=1&limit=10000&fields=all"
   for mc in monitored_clients:
     url += f"&clientid={mc.client_id}"  # this is safe string, because of ClientId constraints
   for attempt in range(emqx_config.attempts):

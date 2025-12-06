@@ -11,3 +11,18 @@ monitored_clients:
     client_id: "qingping-DEADBEEF1234"
   - alias: QingpingCO2_Room2
     client_id: "qingping-DEADBEEF5678"
+
+prometheus:
+  # all values below are defaults
+  port: 9671
+  address: 0.0.0.0
+  ttl_seconds: 15
+  enable_qos_split: false
+  enable_processed_counters: true
+  enable_dropped_counters: false
+  enable_reason_split: false
+  enable_bytes_metrics: true
+  enable_packet_metrics: true
+  enable_dates: false
+  enable_inflight_metrics: true
+  enable_subscription_count: true

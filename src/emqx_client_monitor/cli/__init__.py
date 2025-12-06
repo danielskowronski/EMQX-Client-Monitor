@@ -10,6 +10,7 @@ from emqx_client_monitor.__about__ import __version__
 from emqx_client_monitor.config.schema import AgentConfig
 from emqx_client_monitor.config.load import load_cli_config
 from emqx_client_monitor.emqx.api import get_current_clients
+from emqx_client_monitor.prom.exporter import run_exporter
 
 
 @click.group(
@@ -50,11 +51,21 @@ def check_command(ctx: click.Context, all: bool):
   try:
     clients = get_current_clients(emqx_config, monitored_clients)
     if len(clients) == 0:
-      click.echo("No monitored clients are currently connected.")
+      if all:
+        click.echo("No clients are currently connected.")
+      else:
+        click.echo("No monitored clients are currently connected.")
     else:
-      table = render_clients_table(clients)
+      table = render_clients_table(clients, all)
       console = Console()
       console.print(table)
   except Exception as e:
     click.echo(f"Error while fetching clients: {e}", err=True)
     ctx.exit(1)
+
+
+@emqx_client_monitor.command("prometheus", help="Prometheus exporter")
+@click.pass_context
+def prometheus_command(ctx: click.Context):
+  config: AgentConfig = ctx.obj["config"]
+  run_exporter(config)

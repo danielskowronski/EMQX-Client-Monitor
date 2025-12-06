@@ -10,28 +10,8 @@ Primary use-case is monitoring of IoT devices, which connect to network for shor
 
 It is intended to be deployed on Kubernetes cluster and automatically ingested to Prometheus. Some manual modes are available for convenience. 
 
-## Important assumptions
 
-### Client (and resulting metric) uniqueness
-
-It is based on following attributes:
-
-- client `alias` from configuration
-- MQTT client ID (from config), which must be unique per-broker (so it's also unique per server response)
-- MQTT username (from server response)
-- broker `alias` from configuration (this allows multiple instances of monitor to be ingested into one Prometheus)
-
-Following fields are ignored for this purpose:
-
-- IP address and port number of client - those may change over time (e.g. from DHCP) and are anyway problematic with NAT; in future, they may get exposed as metric (IP converted to integer)
-- EMQX node - it may be random in round-robin cluster; in future, this may get exposed as metric via some mapping coming from agent configuration (right now it's string like `"emqx@emqx-0.emqx-headless.namespace.svc.cluster.local"`)
-- all connection attributes like *clean start*, because they are client configurable
-
----
-
-## Usage
-
-### Installation
+## Installation and prerequisites
 
 [![PyPI:emqx-client-monitor](https://img.shields.io/pypi/v/emqx-client-monitor?style=flat-square&label=PyPI%3A%20emqx-client-monitor)](https://pypi.org/project/emqx-client-monitor/)
 
@@ -39,11 +19,10 @@ Following fields are ignored for this purpose:
 pipx install emqx-client-monitor
 ```
 
-### Prerequisites
+This tool requires EMQX v5 and API key + secret from any admin EMQX user.
 
-- API key and secret from any admin EMQX user
 
-### Configuration
+## Configuration
 
 Prepare configuration file based on [`examples/config.yaml`](./examples/config.yaml). By default, this program uses `~/.config/emqx-client-monitor/config.yaml`, but it can be overridden with `--cfg` flag. 
 
@@ -73,7 +52,7 @@ Optional:
 - `timeout_seconds` is EMQX API connection timeout (default `5`)
 - `attempts` allows multiple attempts before failing (default `3`)
 
-#### `monitored_clients`
+### `monitored_clients`
 
 ```yaml
 monitored_clients:
@@ -85,15 +64,36 @@ monitored_clients:
 
 It's a list of clients to be monitored. Each entry contains `client_id` for matching MQTT client ID (it's unique on broker) and `alias` used as extra label.
 
-#### `prometheus`
+### `prometheus`
 
-TBD
+```yaml
+prometheus:
+  # all values below are defaults
+  port: 9671
+  address: 0.0.0.0
+  ttl_seconds: 15
+  enable_processed_counters: true
+  enable_qos_split: false
+  enable_dropped_counters: false
+  enable_reason_split: false
+  enable_bytes_metrics: true
+  enable_packet_metrics: true
+  enable_dates: false
+  enable_inflight_metrics: true
+  enable_subscription_count: true
+```
 
-### Running
+All values are optional:
 
-#### `check`
+- `port` and `address` define where exporter binds
+- `ttl_seconds` define how long exporter caches data between multiple calls to exporter API
+- `enable_*` are flags to enable various metrics
 
-This is a sub-command for manually checking connected clients once and printing human-readable table. Flag `--all` can be used to ignore `monitored_clients` and get all clients connected (alias column stores client ID).
+## Running
+
+### Manual check (sub-command `check`)
+
+This is a sub-command for manually checking connected clients once and printing human-readable table. Flag `--all` can be used to ignore `monitored_clients` and get all clients connected ("Alias" column becomes "Client ID").
 
 Example output:
 
@@ -113,6 +113,127 @@ Example output:
 └────────────────────────┴────────────┴───────┴────────────┴─────┴───────┴─────────┴──────┴─────┴──────┘
 ```
 
-#### `prometheus`
+### Prometheus exporter (sub-command `prometheus`)
 
-TBD
+#### Labels
+
+All metrics have labels:
+
+- `alias` for client alias from configuration 
+- `broker` for EMQX instance alias from configuration
+- `client_id` for MQTT Client ID
+
+Additionally, most metrics have:
+
+- `direction` being either `rx` for subscriptions and `tx` for published messages
+
+#### Metrics
+
+All available metrics with example data:
+
+```
+# HELP emqx_client_monitor_connected Is client connected
+# TYPE emqx_client_monitor_connected gauge
+emqx_client_monitor_connected{alias="QingpingCO2_Room2",broker="emqx",client_id="qingping-DEADBEEF5678"} 1.0
+# HELP emqx_client_monitor_subscriptions Number of subscriptions
+# TYPE emqx_client_monitor_subscriptions gauge
+emqx_client_monitor_subscriptions{alias="QingpingCO2_Room2",broker="emqx",client_id="qingping-DEADBEEF5678"} 1.0
+# HELP emqx_client_monitor_inflights Number of inflight messages
+# TYPE emqx_client_monitor_inflights gauge
+emqx_client_monitor_inflights{alias="QingpingCO2_Room2",broker="emqx",client_id="qingping-DEADBEEF5678"} 0.0
+# HELP emqx_client_monitor_created_at Client creation time (epoch seconds)
+# TYPE emqx_client_monitor_created_at gauge
+emqx_client_monitor_created_at{alias="QingpingCO2_Room2",broker="emqx",client_id="qingping-DEADBEEF5678"} 1.763772688905e+09
+# HELP emqx_client_monitor_connected_at Client last connected time (epoch seconds)
+# TYPE emqx_client_monitor_connected_at gauge
+emqx_client_monitor_connected_at{alias="QingpingCO2_Room2",broker="emqx",client_id="qingping-DEADBEEF5678"} 1.763772688906e+09
+# HELP emqx_client_monitor_messages_processed_total Number of received messages processed (total)
+# TYPE emqx_client_monitor_messages_processed_total counter
+emqx_client_monitor_messages_processed_total{alias="QingpingCO2_Room2",broker="emqx",client_id="qingping-DEADBEEF5678",direction="rx"} 38657.0
+emqx_client_monitor_messages_processed_total{alias="QingpingCO2_Room2",broker="emqx",client_id="qingping-DEADBEEF5678",direction="tx"} 69.0
+# HELP emqx_client_monitor_messages_processed_by_qos_total Number of received messages processed split by QoS
+# TYPE emqx_client_monitor_messages_processed_by_qos_total counter
+emqx_client_monitor_messages_processed_by_qos_total{alias="QingpingCO2_Room2",broker="emqx",client_id="qingping-DEADBEEF5678",direction="rx",qos="0"} 38657.0
+emqx_client_monitor_messages_processed_by_qos_total{alias="QingpingCO2_Room2",broker="emqx",client_id="qingping-DEADBEEF5678",direction="rx",qos="1"} 0.0
+emqx_client_monitor_messages_processed_by_qos_total{alias="QingpingCO2_Room2",broker="emqx",client_id="qingping-DEADBEEF5678",direction="rx",qos="2"} 0.0
+emqx_client_monitor_messages_processed_by_qos_total{alias="QingpingCO2_Room2",broker="emqx",client_id="qingping-DEADBEEF5678",direction="tx",qos="0"} 69.0
+emqx_client_monitor_messages_processed_by_qos_total{alias="QingpingCO2_Room2",broker="emqx",client_id="qingping-DEADBEEF5678",direction="tx",qos="1"} 0.0
+emqx_client_monitor_messages_processed_by_qos_total{alias="QingpingCO2_Room2",broker="emqx",client_id="qingping-DEADBEEF5678",direction="tx",qos="2"} 0.0
+# HELP emqx_client_monitor_messages_dropped_total Number of received messages dropped (total)
+# TYPE emqx_client_monitor_messages_dropped_total counter
+emqx_client_monitor_messages_dropped_total{alias="QingpingCO2_Room2",broker="emqx",client_id="qingping-DEADBEEF5678",direction="rx"} 0.0
+emqx_client_monitor_messages_dropped_total{alias="QingpingCO2_Room2",broker="emqx",client_id="qingping-DEADBEEF5678",direction="tx"} 0.0
+# HELP emqx_client_monitor_messages_dropped_by_reason_total Number of received messages dropped split by reason
+# TYPE emqx_client_monitor_messages_dropped_by_reason_total counter
+emqx_client_monitor_messages_dropped_by_reason_total{alias="QingpingCO2_Room2",broker="emqx",client_id="qingping-DEADBEEF5678",direction="rx",reason="await_pubrel_timeout"} 0.0
+emqx_client_monitor_messages_dropped_by_reason_total{alias="QingpingCO2_Room2",broker="emqx",client_id="qingping-DEADBEEF5678",direction="tx",reason="expired"} 0.0
+emqx_client_monitor_messages_dropped_by_reason_total{alias="QingpingCO2_Room2",broker="emqx",client_id="qingping-DEADBEEF5678",direction="tx",reason="queue_full"} 0.0
+emqx_client_monitor_messages_dropped_by_reason_total{alias="QingpingCO2_Room2",broker="emqx",client_id="qingping-DEADBEEF5678",direction="tx",reason="too_large"} 0.0
+# HELP emqx_client_monitor_bytes_total Number of received raw octets (bytes)
+# TYPE emqx_client_monitor_bytes_total counter
+emqx_client_monitor_bytes_total{alias="QingpingCO2_Room2",broker="emqx",client_id="qingping-DEADBEEF5678",direction="rx"} 1.0525736e+07
+emqx_client_monitor_bytes_total{alias="QingpingCO2_Room2",broker="emqx",client_id="qingping-DEADBEEF5678",direction="tx"} 8009.0
+# HELP emqx_client_monitor_packets_total Number of received MQTT packets
+# TYPE emqx_client_monitor_packets_total counter
+emqx_client_monitor_packets_total{alias="QingpingCO2_Room2",broker="emqx",client_id="qingping-DEADBEEF5678",direction="rx"} 38761.0
+emqx_client_monitor_packets_total{alias="QingpingCO2_Room2",broker="emqx",client_id="qingping-DEADBEEF5678",direction="tx"} 173.0
+```
+
+Those are controlled by feature-flags:
+
+- `emqx_client_monitor_connected` is always exported, even if not returned by EMQX API
+- `enable_subscription_count` controls:
+  - `emqx_client_monitor_subscriptions`
+- `enable_inflight_metrics` controls:
+  - `emqx_client_monitor_inflights`
+- `enable_dates` controls:
+  - `emqx_client_monitor_created_at`
+  - `emqx_client_monitor_connected_at`
+- `enable_processed_counters` controls:
+  - `emqx_client_monitor_messages_processed_total` (RX/TX)
+- `enable_qos_split` controls:
+  - `emqx_client_monitor_messages_processed_by_qos_total` (RX/TX) by `qos` label (`0`/`1`/`2`)
+- `enable_dropped_counters` controls:
+  - `emqx_client_monitor_messages_dropped_total` (RX/TX)
+- `enable_reason_split` controls:
+  - `emqx_client_monitor_messages_dropped_by_reason_total` (RX/TX) by `reason` label:
+    - RX `await_pubrel_timeout`
+    - TX `expired`
+    - TX `queue_full`
+    - TX `too_large`
+- `enable_bytes_metrics` controls:
+  - `emqx_client_monitor_bytes_total` (RX/TX)
+- `enable_packet_metrics` controls:
+  - `emqx_client_monitor_packets_total` (RX/TX)
+
+---
+
+## Important assumptions
+
+### Client (and resulting metric) uniqueness
+
+It is based on following attributes:
+
+- client `alias` from configuration
+- MQTT client ID (from config), which must be unique per-broker (so it's also unique per server response)
+- MQTT username (from server response)
+- broker `alias` from configuration (this allows multiple instances of monitor to be ingested into one Prometheus)
+
+Following fields are ignored for this purpose:
+
+- IP address and port number of client - those may change over time (e.g. from DHCP) and are anyway problematic with NAT; in future, they may get exposed as metric (IP converted to integer)
+- EMQX node - it may be random in round-robin cluster; in future, this may get exposed as metric via some mapping coming from agent configuration (right now it's string like `"emqx@emqx-0.emqx-headless.namespace.svc.cluster.local"`)
+- all connection attributes like *clean start*, because they are client configurable
+
+## Live data from EMQX API
+
+For now, all data is live from EMQX API. This means that once client disconnects, all gauges and counters disappear (except `emqx_client_monitor_connected`). By design, once client connects back, counters on EMQX API reset. 
+
+In other words, **some metrics may not make much sense for clients that have TTL shorter than publish interval**. For now, it's a responsibility of some other system to aggregate resetting counters into rate gauges.
+
+Additionaly, Prometheus scraping must be more frequent than shortest TTL for clients that connect and disconnect very often. Usually it's not a problem, as default scrape interval is 30s. This means that clients are going to be marked as disconnected when they have absurdly short TTL (like 10s), they connect very rarely and immediately disconnect after publishing single message.
+
+To solve that, this program will need to implement the following:
+
+- EMQX API scraper running independently of Prometheus scrapes
+- internal state for keeping track of counters and reporting last-known data for disconnected clients
