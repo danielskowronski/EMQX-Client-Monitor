@@ -28,7 +28,12 @@ from emqx_client_monitor.prom.exporter import run_exporter
 @click.pass_context
 def emqx_client_monitor(ctx: click.Context, cfg: str):
   click.echo(f"EMQX Client Monitor version {__version__}")
-  config = load_cli_config(cfg)
+  try:
+    config = load_cli_config(cfg)
+  except Exception as e:
+    click.echo(f"Error while loading configuration: {e}", err=True)
+    ctx.exit(1)
+    return
   ctx.ensure_object(dict)
   ctx.obj["cfg"] = cfg
   ctx.obj["config"] = config

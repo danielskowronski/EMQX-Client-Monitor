@@ -13,6 +13,8 @@ It is intended to be deployed on Kubernetes cluster and automatically ingested t
 
 ## Installation and prerequisites
 
+### Local environment
+
 [![PyPI:emqx-client-monitor](https://img.shields.io/pypi/v/emqx-client-monitor?style=flat-square&label=PyPI%3A%20emqx-client-monitor)](https://pypi.org/project/emqx-client-monitor/)
 
 ```bash
@@ -21,6 +23,25 @@ pipx install emqx-client-monitor
 
 This tool requires EMQX v5 and API key + secret from any admin EMQX user.
 
+### Docker image and Helm chart
+
+Docker image is hosted at [ghcr.io/danielskowronski/emqx-client-monitor](https://github.com/danielskowronski/EMQX-Client-Monitor/pkgs/container/emqx-client-monitor) and Helm chart is in this repo at [charts/emqx-client-monitor](./charts/emqx-client-monitor/).
+
+At minimum, following options has to be set:
+
+```yaml
+config:
+  targetEmqx:
+    api_key: "..."
+    api_secret: "..."
+  monitoredClients:
+    - alias: some_alias
+      client_id: "some_client_id"
+```
+
+This will target EMQX in same namespace, configure Prometheus to scrape metrics and create `EmqxClientDisconnectedTooLong` alert rule.
+
+In future, this chart will be documented better and published as OCI artifact. Some automation to get API key/secret is also considered.
 
 ## Configuration
 
@@ -231,7 +252,7 @@ For now, all data is live from EMQX API. This means that once client disconnects
 
 In other words, **some metrics may not make much sense for clients that have TTL shorter than publish interval**. For now, it's a responsibility of some other system to aggregate resetting counters into rate gauges.
 
-Additionaly, Prometheus scraping must be more frequent than shortest TTL for clients that connect and disconnect very often. Usually it's not a problem, as default scrape interval is 30s. This means that clients are going to be marked as disconnected when they have absurdly short TTL (like 10s), they connect very rarely and immediately disconnect after publishing single message.
+Additionally, Prometheus scraping must be more frequent than shortest TTL for clients that connect and disconnect very often. Usually it's not a problem, as default scrape interval is 30s. This means that clients are going to be marked as disconnected when they have absurdly short TTL (like 10s), they connect very rarely and immediately disconnect after publishing single message.
 
 To solve that, this program will need to implement the following:
 

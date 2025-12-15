@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
+import click
 from emqx_client_monitor.config.schema import EmqxConfig, MonitoredClientConfig
 from emqx_client_monitor.emqx.client_info import ClientInfo
 import requests
@@ -29,6 +30,7 @@ def get_current_clients(
     url += f"&clientid={mc.client_id}"  # this is safe string, because of ClientId constraints
   for attempt in range(emqx_config.attempts):
     try:
+      click.echo(f"About to fetch clients from EMQX API at {url} (attempt {attempt + 1})...")
       resp = requests.get(
         url,
         auth=(emqx_config.api_key, emqx_config.api_secret),
@@ -38,6 +40,7 @@ def get_current_clients(
       resp.raise_for_status()
       data = resp.json()
       clients_data = data.get("data", [])
+      click.echo(f"Fetched {len(clients_data)} clients from EMQX API")
       return parse_clients_list(clients_data, monitored_clients)
     except (requests.RequestException, ValueError) as e:
       if attempt + 1 == emqx_config.attempts:
