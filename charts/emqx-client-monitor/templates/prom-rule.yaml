@@ -20,6 +20,9 @@ spec:
           for: {{ .Values.prometheusRule.offlineWindow }}
           labels:
             severity: {{ .Values.prometheusRule.severity | quote }}
+            {{- with .Values.prometheusRule.ruleExtraLabels }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           annotations:
             summary: "EMQX client {{`{{`}} $labels.alias {{`}}`}} is disconnected"
             description: "Client {{`{{`}} $labels.alias {{`}}`}} on broker {{`{{`}} $labels.broker {{`}}`}} has been offline for at least {{ .Values.prometheusRule.offlineWindow }}."

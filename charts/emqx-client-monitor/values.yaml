@@ -70,6 +70,8 @@ prometheusRule:
   namespace: ""
   additionalLabels:
     release: kube-prometheus-stack
+  ruleExtraLabels:
+    monitor_svc: "smarthome"
   severity: warning
   offlineWindow: 30m
 
